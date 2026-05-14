@@ -1,0 +1,504 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Telecom Assistant",
+        "formDescription": "Ask us about plans, roaming, bundles and pricing and if you have any question for me.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Full Name",
+              "placeholder": "e.g.  Mahd",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Customer ID",
+              "placeholder": "e.g. What is the best roaming plan for Europe?",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Choose your Telecom plan",
+              "fieldType": "radio",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Basic"
+                  },
+                  {
+                    "option": "Standard"
+                  },
+                  {
+                    "option": "Premium"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Choose your data roaming add-ons:",
+              "fieldType": "radio",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Europe Pack"
+                  },
+                  {
+                    "option": "Asia Pack"
+                  },
+                  {
+                    "option": "Global Pack"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Ask your question:",
+              "fieldType": "textarea"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        -768,
+        176
+      ],
+      "id": "8a8621c6-d37c-4088-bdca-c919fd236864",
+      "name": "On form submission",
+      "webhookId": "be7c1892-f504-4c93-9851-9b7f624eb913"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert telecom customer support assistant and sales advisor. Your job is to answer customer questions accurately using only the data provided, identify upsell opportunities, and return a structured JSON response.\n\nCustomer ID: {{ $json['Customer ID'] }}\nCustomer Name: {{ $json['Full Name'] }}\nCurrent Plan: {{ $json['Choose your Telecom plan'] }}\nActive Add-Ons: {{ $json['Choose your data roaming add-ons:'] }}\nCustomer Question: {{ $json['Ask your question:'] }}\n\n--- TELECOM PLANS ---\nPLAN 1: Basic\n- Price: $15/month\n- Data: 5GB\n- Calls: 100 mins\n- Roaming: Not included\n- Eligibility: All customers\n\nPLAN 2: Standard\n- Price: $30/month\n- Data: 20GB\n- Calls: Unlimited\n- Roaming: 10 days free in 30 countries\n- Eligibility: Customers 3+ months\n\nPLAN 3: Premium\n- Price: $50/month\n- Data: Unlimited\n- Calls: Unlimited\n- Roaming: Unlimited in 80 countries\n- Eligibility: All customers\n\n--- ROAMING ADD-ONS ---\n- Europe Pack: $10/week, 2GB roaming data\n- Asia Pack: $12/week, 1.5GB roaming data\n- Global Pack: $20/week, 1GB roaming data in 100 countries\n\n--- FAQ ---\nQ: How do I activate roaming?\nA: Call 1234 or go to MyAccount app and enable roaming before travel.\n\nQ: Can I keep my number?\nA: Yes, number portability is free and takes 2 business days.\n\nQ: Is there a contract?\nA: No, all plans are month-to-month with no lock-in.\n\nQ: How do I upgrade?\nA: Log into MyAccount app or call 1234 anytime.\n\n--- INSTRUCTIONS ---\n1. Answer the customer's question directly and helpfully using only the data above.\n2. Consider the customer's CURRENT plan and add-ons when forming your answer — personalize it.\n3. If the customer's question is about roaming and they are on Basic (no roaming included), proactively mention relevant add-ons or an upgrade.\n4. Determine if this customer is a potential sales lead based on their question and current plan.\n5. A customer IS a lead if: they are asking about roaming, upgrades, pricing of higher plans, or features not in their current plan.\n6. Recommend the most cost-effective bundle or plan upgrade relevant to their question.\n7. Never invent data. If something is not in the data above, say you will escalate to a specialist.\n8. For confidence: rate your own confidence (0.0 to 1.0) based on how clearly the FAQ and plan data answered the question. Use 0.95+ if the answer is directly in the data, 0.70-0.94 if you had to infer, and below 0.70 if the question is outside the provided data and needs escalation.\n\nReturn ONLY a raw JSON object. No markdown, no code blocks, no extra text whatsoever.\n\n{\n  \"customer_id\": \"{{ $json['Customer ID'] }}\",\n  \"full_name\": \"{{ $json['Full Name'] }}\",\n  \"current_plan\": \"{{ $json['Choose your Telecom plan'] }}\",\n  \"active_addons\": \"{{ $json['Choose your data roaming add-ons:'] }}\",\n  \"question\": \"the customer's question rephrased clearly in one sentence\",\n  \"answer\": \"a direct, personalized answer referencing the customer's current plan and the FAQ data\",\n  \"recommended_bundle\": \"the most relevant plan or add-on name for this customer's needs\",\n  \"bundle_cost\": \"the price of the recommended bundle e.g. $10/week or $30/month\",\n  \"upgrade_savings\": \"optional note on cost difference if upgrading plan is better value than adding an add-on\",\n  \"eligibility\": \"who qualifies for the recommended plan or add-on\",\n  \"is_lead\": true or false,\n  \"lead_reason\": \"one sentence explaining why this customer is or is not a sales lead\",\n  \"next_action\": \"one of: Escalate to Agent, Send Upgrade Link, Send Add-On Link, No Action Required\",\n  \"confidence\": a float between 0.0 and 1.0 — self-assessed based on how well the FAQ data covered the question,\n  \"confidence_reason\": \"one sentence explaining why you gave this confidence score\"\n}",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -480,
+        48
+      ],
+      "id": "c8e0feb7-e0c4-402d-a4f5-0a294ade777c",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "nvidia/nemotron-3-super-120b-a12b:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        256
+      ],
+      "id": "a31289c4-bc6d-4140-8d55-e6adbe56e4bd",
+      "name": "OpenRouter Chat Model",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the AI response - handle both 'text' and 'output' keys\nconst raw = $input.first().json.text || $input.first().json.output || '';\n\n// Strip markdown fences if present\nconst cleaned = raw\n  .replace(/```json/gi, '')\n  .replace(/```/g, '')\n  .trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch(e) {\n  throw new Error('Failed to parse AI response: ' + cleaned);\n}\n\nreturn [{\n  json: {\n    customer_id:               parsed.customer_id        || 'Unknown',\n    full_name:                 parsed.full_name          || 'Unknown',\n    current_plan:              parsed.current_plan       || 'Unknown',\n    active_addons:             parsed.active_addons      || 'None',\n    question:                  parsed.question           || '',\n    answer:                    parsed.answer             || '',\n    recommended_bundle:        parsed.recommended_bundle || 'None',\n    bundle_cost:               parsed.bundle_cost        || 'N/A',\n    upgrade_savings:           parsed.upgrade_savings    || 'N/A',\n    eligibility:               parsed.eligibility        || 'N/A',\n    is_lead:                   parsed.is_lead === true ? 'Yes' : 'No',\n    lead_reason:               parsed.lead_reason        || '',\n    next_action:               parsed.next_action        || 'No Action Required',\n    confidence:                parseFloat(parsed.confidence) || 0.0,\n    confidence_reason:         parsed.confidence_reason  || '',\n    logged_at:                 new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -64
+      ],
+      "id": "1b1c34f2-8e47-4db7-9c3f-f5334a62995a",
+      "name": "Parse AI Response"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1eZKg3wN8spj90FjLnp7TcBUejnA2e2TDfS9t8tk-6Ss",
+          "mode": "list",
+          "cachedResultName": "QnA part - Telecom FAQ Chatbot",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1eZKg3wN8spj90FjLnp7TcBUejnA2e2TDfS9t8tk-6Ss/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1eZKg3wN8spj90FjLnp7TcBUejnA2e2TDfS9t8tk-6Ss/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {
+            "customer_id": "={{ $json.customer_id }}",
+            "question": "={{ $json.question }}",
+            "answer": "={{ $json.answer }}",
+            "recommended_bundle": "={{ $json.recommended_bundle }}",
+            "bundle_cost": "={{ $json.bundle_cost }}",
+            "eligibility": "={{ $json.eligibility }}",
+            "is_lead": "={{ $json.is_lead }}",
+            "lead_reason": "={{ $json.lead_reason }}",
+            "confidence": "={{ $json.confidence }}",
+            "logged_at": "={{ $json.logged_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "customer_id",
+              "displayName": "customer_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "question",
+              "displayName": "question",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "answer",
+              "displayName": "answer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recommended_bundle",
+              "displayName": "recommended_bundle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "bundle_cost",
+              "displayName": "bundle_cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "eligibility",
+              "displayName": "eligibility",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_lead",
+              "displayName": "is_lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_reason",
+              "displayName": "lead_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confidence",
+              "displayName": "confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "logged_at",
+              "displayName": "logged_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "full_name",
+              "displayName": "full_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "current_plan",
+              "displayName": "current_plan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "active_addons",
+              "displayName": "active_addons",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "upgrade_savings",
+              "displayName": "upgrade_savings",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "next_action",
+              "displayName": "next_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "confidence_reason",
+              "displayName": "confidence_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        16,
+        -304
+      ],
+      "id": "83109c71-492b-4aa5-b9ee-1b6f6f8d8a01",
+      "name": "Log to Google Sheets",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "operation": "toFile",
+        "fileFormat": "xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [
+        192,
+        144
+      ],
+      "id": "b53b6701-9f94-47aa-8958-2dc987e00e0e",
+      "name": "Export to Excel"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1Z4WA1mYG3HFVeLmaHMerjvMbIgJHmfIrct6-LTvxhDs",
+          "mode": "list",
+          "cachedResultName": "Orbitel FAQ form (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Z4WA1mYG3HFVeLmaHMerjvMbIgJHmfIrct6-LTvxhDs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1336846846,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Z4WA1mYG3HFVeLmaHMerjvMbIgJHmfIrct6-LTvxhDs/edit#gid=1336846846"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        -816,
+        -112
+      ],
+      "id": "13b1fd31-56cc-43ee-a479-cdadafa16e54",
+      "name": "Google Sheets Trigger",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "5734f927-72ba-482d-be32-c74d1ae61858",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1056,
+        48
+      ],
+      "id": "ac723c2c-8967-42cb-a9fa-bef8bdaa6cd8",
+      "name": "Webhook",
+      "webhookId": "5734f927-72ba-482d-be32-c74d1ae61858"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.answer }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        176,
+        -48
+      ],
+      "id": "d64d0e80-12d2-42a6-a5a0-1c84d8d48567",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\nreturn [{\n  json: {\n    'Customer ID':                    body.customer_id        || body['Customer ID']                     || 'Unknown',\n    'Full Name':                      body.full_name          || body['Full Name']                       || 'Unknown',\n    'Choose your Telecom plan':       body.current_plan       || body['Choose your Telecom plan']        || 'Basic',\n    'Choose your data roaming add-ons:': body.active_addons   || body['Choose your data roaming add-ons:'] || 'None',\n    'Ask your question:':             body.question           || body['Ask your question:']              || ''\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -848,
+        48
+      ],
+      "id": "8b9a4054-daf4-49cc-9ddc-35e56623c669",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Export to Excel",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "425513065c486cfddfef26e52dcde12b76ef191aea73b67bdd85b30366978ac1"
+  }
+}

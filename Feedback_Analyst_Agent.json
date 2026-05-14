@@ -1,0 +1,448 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert customer success analyst in the telecom industry. Analyze the following customer feedback and return ONLY a raw JSON object. No markdown, no code blocks, no extra text whatsoever.\n\nCustomer ID: {{ $json['Email Address'] }}\nFull Name: {{ $json['Full Name'] }}\nFeedback: {{ $json['Anything else you would like to share with us?'] }}\nService Type: {{ $json['What is your primary service type with us?'] }}\nCustomer Tenure: {{ $json['How long have you been a customer of our telecom services?'] }}\nOverall Satisfaction Score (1-10): {{ $json['Overall, how satisfied are you with our telecom services?'] }}\n\n--- Mobile/Cellular Ratings ---\nNetwork Reliability (Call Drops): {{ $json['Please rate the following aspects of your Mobile/Cellular service (If applicable): [Network Reliability (Call drops, consistent signal)]'] }}\nData Speed (4G/5G): {{ $json['Please rate the following aspects of your Mobile/Cellular service (If applicable): [Data Speed (4G/5G performance)]'] }}\nCoverage at Primary Location: {{ $json['Please rate the following aspects of your Mobile/Cellular service (If applicable): [Coverage in your primary location (Home/Work)]'] }}\nValue for Money: {{ $json['Please rate the following aspects of your Mobile/Cellular service (If applicable): [Value for Money of your plan]'] }}\nEase of Top-Up/Recharge: {{ $json['Please rate the following aspects of your Mobile/Cellular service (If applicable): [Ease of topping up/recharging]'] }}\n\n--- Home Internet/Broadband Ratings ---\nConnection Stability: {{ $json['Please rate the following aspects of your Home Internet/Broadband service (If applicable): [Connection Stability (Downtime/Interruptions)]'] }}\nAdvertised vs Actual Speed: {{ $json['Please rate the following aspects of your Home Internet/Broadband service (If applicable): [Advertised Speed vs. Actual Speed]'] }}\nLatency/Ping: {{ $json['Please rate the following aspects of your Home Internet/Broadband service (If applicable): [Latency/Ping for streaming and gaming]'] }}\nInstallation Experience: {{ $json['Please rate the following aspects of your Home Internet/Broadband service (If applicable): [Installation Process Experience]'] }}\n\n--- Support & Account ---\nCustomer Support Satisfaction (1-10): {{ $json['How satisfied were you with your last interaction with our Customer Support team (Phone, Chat, or In-store)?'] }}\nSupport Channels Used: {{ $json['Which customer support channels have you used in the last 12 months? (Select all that apply)'] }}\nOnline Portal/App Rating (1-10): {{ $json['Please rate the speed and efficiency of our online portal/mobile app for managing your account:'] }}\nRecent Outages Experienced: {{ $json['Were there any recent service outages you experienced? If so, please provide the approximate date(s) (optional).'] }}\n\n--- Loyalty & NPS ---\nPlan Renewal Intent: {{ $json['Do you plan to renew your current service plan when the contract ends?'] }}\nNet Promoter Score (0-10): {{ $json['Would you recommend our telecom services to a friend or colleague? (Net Promoter Score)'] }}\nTop Improvement Suggestion: {{ $json['What is the single most important thing we could do to improve your experience?'] }}\n\nReturn ONLY this JSON:\n{\n  \"customer_id\": \"{{ $json['Email Address'] }}\",\n  \"full_name\": \"{{ $json['Full Name'] }}\",\n  \"service_type\": \"{{ $json['What is your primary service type with us?'] }}\",\n  \"customer_tenure\": \"{{ $json['How long have you been a customer of our telecom services?'] }}\",\n  \"overall_satisfaction\": {{ $json['Overall, how satisfied are you with our telecom services?'] }},\n  \"nps_score\": {{ $json['Would you recommend our telecom services to a friend or colleague? (Net Promoter Score)'] }},\n  \"support_satisfaction\": {{ $json['How satisfied were you with your last interaction with our Customer Support team (Phone, Chat, or In-store)?'] }},\n  \"portal_rating\": {{ $json['Please rate the speed and efficiency of our online portal/mobile app for managing your account:'] }},\n  \"renewal_intent\": \"{{ $json['Do you plan to renew your current service plan when the contract ends?'] }}\",\n  \"top_complaint\": \"{{ $json['What is the single most important thing we could do to improve your experience?'] }}\",\n  \"topic\": \"one of: Billing, Technical Issue, Product Quality, Customer Service, Cancellation Request, Feature Request, Shipping and Delivery, General Praise, Refund Request, Account Issue\",\n  \"sentiment\": \"one of: Positive, Neutral, Negative, Highly Negative\",\n  \"confidence\": 0.95,\n  \"summary\": \"one sentence summarizing the core feedback\",\n  \"churn_risk\": \"one of: Low, Medium, High, Critical\",\n  \"retention_upsell_template\": \"one of: Apology and Discount Offer, Technical Support Escalation, Billing Clarification and Credit, Feature Request Acknowledgment, Cancellation Prevention Offer, Shipping Delay Compensation, Thank You and Loyalty Reward, Refund Processing Confirmation, Account Recovery Assistance, General Follow-Up\",\n  \"template_message\": \"personalized message using the customer's full name and referencing their specific complaint\",\n  \"logged_at\": \"{{ $now.toISO() }}\"\n}",
+        "options": {
+          "systemMessage": "You are an expert customer success analyst in the telecom industry. Analyze the following customer feedback and return ONLY a raw JSON object. No markdown, no code blocks, no extra text whatsoever."
+        }
+      },
+      "id": "ffcd75a2-79ce-4cf1-9a24-ec98ec15c3d5",
+      "name": "Analyze Feedback1",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        496,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "50c57892-eb7b-46b5-94f5-42b0ad45e2e1",
+      "name": "OpenAI Model1",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        560,
+        784
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "AQ376a9N9cMGnXWn",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "pythonNative",
+        "pythonCode": "def parse_json_string(s):\n    s = s.strip()\n    if s.startswith('{'):\n        return parse_object(s)\n    return None\n\ndef parse_object(s):\n    s = s.strip()[1:]  # remove opening {\n    result = {}\n    while s:\n        s = s.strip()\n        if s.startswith('}'):\n            break\n        # Parse key\n        if s.startswith('\"'):\n            key, s = parse_string(s)\n        else:\n            break\n        s = s.strip()\n        if s.startswith(':'):\n            s = s[1:].strip()\n        # Parse value\n        val, s = parse_value(s)\n        result[key] = val\n        s = s.strip()\n        if s.startswith(','):\n            s = s[1:]\n    return result\n\ndef parse_string(s):\n    # s starts with \"\n    i = 1\n    result = []\n    while i < len(s):\n        c = s[i]\n        if c == '\\\\':\n            i += 1\n            esc = s[i]\n            if esc == 'n': result.append('\\n')\n            elif esc == 't': result.append('\\t')\n            elif esc == 'r': result.append('\\r')\n            elif esc == '\"': result.append('\"')\n            elif esc == '\\\\': result.append('\\\\')\n            else: result.append(esc)\n        elif c == '\"':\n            return ''.join(result), s[i+1:]\n        else:\n            result.append(c)\n        i += 1\n    return ''.join(result), ''\n\ndef parse_value(s):\n    s = s.strip()\n    if s.startswith('\"'):\n        return parse_string(s)\n    elif s.startswith('{'):\n        obj = parse_object(s)\n        # find end of object to return remainder\n        depth = 0\n        i = 0\n        in_str = False\n        for i, c in enumerate(s):\n            if c == '\"' and (i == 0 or s[i-1] != '\\\\'):\n                in_str = not in_str\n            if not in_str:\n                if c == '{': depth += 1\n                elif c == '}':\n                    depth -= 1\n                    if depth == 0:\n                        return obj, s[i+1:]\n        return obj, ''\n    elif s.startswith('true'):\n        return True, s[4:]\n    elif s.startswith('false'):\n        return False, s[5:]\n    elif s.startswith('null'):\n        return None, s[4:]\n    else:\n        # number\n        i = 0\n        while i < len(s) and s[i] in '0123456789.-+eE':\n            i += 1\n        num_str = s[:i]\n        try:\n            if '.' in num_str:\n                return float(num_str), s[i:]\n            else:\n                return int(num_str), s[i:]\n        except:\n            return None, s[i:]\n\ntry:\n    payload_string = _item[\"json\"][\"output\"]\n    \n    # Clean mailto links\n    while \"](mailto:\" in payload_string:\n        start = payload_string.rfind(\"[\", 0, payload_string.index(\"](mailto:\"))\n        end = payload_string.index(\")\", payload_string.index(\"](mailto:\")) + 1\n        inner = payload_string[start+1 : payload_string.index(\"](mailto:\")]\n        payload_string = payload_string[:start] + inner + payload_string[end:]\n\n    payload = parse_json_string(payload_string)\n\n    _item[\"json\"] = {\n        \"customer_id\":               payload.get(\"customer_id\"),\n        \"full_name\":                 payload.get(\"full_name\"),\n        \"service_type\":              payload.get(\"service_type\"),\n        \"customer_tenure\":           payload.get(\"customer_tenure\"),\n        \"overall_satisfaction\":      payload.get(\"overall_satisfaction\"),\n        \"nps_score\":                 payload.get(\"nps_score\"),\n        \"support_satisfaction\":      payload.get(\"support_satisfaction\"),\n        \"portal_rating\":             payload.get(\"portal_rating\"),\n        \"renewal_intent\":            payload.get(\"renewal_intent\"),\n        \"top_complaint\":             payload.get(\"top_complaint\"),\n        \"topic\":                     payload.get(\"topic\"),\n        \"sentiment\":                 payload.get(\"sentiment\"),\n        \"confidence\":                payload.get(\"confidence\"),\n        \"summary\":                   payload.get(\"summary\"),\n        \"churn_risk\":                payload.get(\"churn_risk\"),\n        \"retention_upsell_template\": payload.get(\"retention_upsell_template\"),\n        \"template_message\":          payload.get(\"template_message\"),\n        \"logged_at\":                 payload.get(\"logged_at\"),\n    }\n\nexcept Exception as e:\n    _item[\"json\"] = {\n        \"error\":       str(e),\n        \"customer_id\": _item[\"json\"].get(\"customer_id\", \"UNKNOWN\"),\n        \"logged_at\":   _item[\"json\"].get(\"logged_at\", \"\"),\n    }\n\nreturn _item"
+      },
+      "id": "e446038f-60c2-4074-8311-2b0c6ce88254",
+      "name": "Parse AI Response1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1oQjU5VGCqnWvTNu-1lAaRfG1A4LNoMcYtaXF4Y0yoos",
+          "cachedResultName": " Customer Feedback Classifier - Uni project"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1oQjU5VGCqnWvTNu-1lAaRfG1A4LNoMcYtaXF4Y0yoos/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "customer_id",
+              "displayName": "customer_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "topic",
+              "displayName": "topic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sentiment",
+              "displayName": "sentiment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "confidence",
+              "displayName": "confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "retention_upsell_template",
+              "displayName": "retention_upsell_template",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "template_message",
+              "displayName": "template_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "logged_at",
+              "displayName": "logged_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "question",
+              "displayName": "question",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "answer",
+              "displayName": "answer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "recommended_bundle",
+              "displayName": "recommended_bundle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "bundle_cost",
+              "displayName": "bundle_cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "eligibility",
+              "displayName": "eligibility",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_lead",
+              "displayName": "is_lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lead_reason",
+              "displayName": "lead_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "full_name",
+              "displayName": "full_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "service_type",
+              "displayName": "service_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "customer_tenure",
+              "displayName": "customer_tenure",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "overall_satisfaction",
+              "displayName": "overall_satisfaction",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "nps_score",
+              "displayName": "nps_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "support_satisfaction",
+              "displayName": "support_satisfaction",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "portal_rating",
+              "displayName": "portal_rating",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "renewal_intent",
+              "displayName": "renewal_intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "top_complaint",
+              "displayName": "top_complaint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "churn_risk",
+              "displayName": "churn_risk",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "78ec2da0-723c-4c0d-a324-045fb2f32738",
+      "name": "Log to Google Sheets1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1072,
+        560
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "DU2cb4B6399U0Ao2",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "187UvG0ePDBO9KHAs4B2EYShgRwGjWM3UkGYdeigsXww",
+          "mode": "list",
+          "cachedResultName": "Telecom Service Customer Feedback Form (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/187UvG0ePDBO9KHAs4B2EYShgRwGjWM3UkGYdeigsXww/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1559474005,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/187UvG0ePDBO9KHAs4B2EYShgRwGjWM3UkGYdeigsXww/edit#gid=1559474005"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        272,
+        560
+      ],
+      "id": "36c99a7d-cb7b-4575-9bae-a684a274a617",
+      "name": "Google Sheets Trigger1",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "XhLQxqSwYFiqxTSC",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Analyze Feedback1": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analyze Feedback1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response1": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheets1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Analyze Feedback1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "425513065c486cfddfef26e52dcde12b76ef191aea73b67bdd85b30366978ac1"
+  }
+}

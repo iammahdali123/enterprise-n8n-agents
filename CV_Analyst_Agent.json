@@ -1,0 +1,655 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "HR Evaluation Submission",
+        "formDescription": "Please submit candidate details and resume.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Full Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Resume",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf,.docx",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a5fc06dc-20ad-457a-b3e8-4be21757f170",
+      "name": "On form submission",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        -1152,
+        -80
+      ],
+      "webhookId": "a3ec3bc2-292f-47d0-996c-78cd6e74de4d"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1izDGu-qC3c20x67ngP_ZwznhgMl7EsaU2aUbUfNrpcY",
+          "mode": "list",
+          "cachedResultName": "HT bot CV evaluation (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1izDGu-qC3c20x67ngP_ZwznhgMl7EsaU2aUbUfNrpcY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1293809148,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1izDGu-qC3c20x67ngP_ZwznhgMl7EsaU2aUbUfNrpcY/edit#gid=1293809148"
+        },
+        "options": {}
+      },
+      "id": "7e18861b-c10c-4863-a7c3-2fb819c8a51f",
+      "name": "Google Sheets Trigger",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1152,
+        160
+      ],
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "XhLQxqSwYFiqxTSC",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nconst name  = item['Full Name'] || item['full_name'] || item['Name'] || 'Unknown';\nconst email = item['Email']     || item['email']     || '';\n\nconst resumeUrl = item['Resume'] || item['CV'] || item['Upload your resume'] || item['Upload Resume'] || '';\n\nif (!name || name === 'Unknown') throw new Error('Missing Full Name in sheet row');\nif (!email) throw new Error('Missing Email in sheet row');\nif (!resumeUrl) throw new Error('Missing resume file URL in sheet row. Check your column name matches exactly.');\n\nlet fileId = '';\nconst matchV = resumeUrl.match(/\\/file\\/d\\/([a-zA-Z0-9_-]+)/);\nconst matchO = resumeUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);\nconst matchS = resumeUrl.match(/\\/d\\/([a-zA-Z0-9_-]+)/);\n\nif (matchV) fileId = matchV[1];\nelse if (matchO) fileId = matchO[1];\nelse if (matchS) fileId = matchS[1];\nelse throw new Error('Could not extract Drive file ID from URL: ' + resumeUrl);\n\nreturn [{\n  json: {\n    candidate_name: String(name).trim(),\n    email: String(email).trim().toLowerCase(),\n    file_id: fileId,\n    resume_url: resumeUrl\n  }\n}];"
+      },
+      "id": "5df52f6e-0de0-4a9f-bd00-d6c721103871",
+      "name": "Extract Sheet Row Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -832,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst raw = item.json;\nconst body = raw.body || raw;\n\nconst name = body['Full Name'] || body.full_name || body.name || body.candidate_name || 'Unknown';\nconst email = body['Email'] || body.email || '';\n\nif (!name || name === 'Unknown') throw new Error('Missing required field: Full Name');\nif (!email) throw new Error('Missing required field: Email');\n\nreturn [{\n  json: {\n    candidate_name: String(name).trim(),\n    email: String(email).trim().toLowerCase()\n  }\n}];"
+      },
+      "id": "6b1f1f30-9db5-42fb-8627-b92b920f3f12",
+      "name": "Validate & Extract Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -832,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://drive.usercontent.google.com/uc?id={{ $json.file_id }}&export=download",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "Resume"
+            }
+          }
+        }
+      },
+      "id": "2c19473a-afc4-4300-a4c0-a754d69fcc58",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -624,
+        160
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "DU2cb4B6399U0Ao2",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "Resume",
+        "options": {}
+      },
+      "id": "3fbac872-bf7d-4bf5-bd9e-b2f3789b4d85",
+      "name": "Extract from File",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Extract the basic essential candidate details from the provided resume text.\n\nResume Text:\n{{ $json.text }}\n\nReturn ONLY a raw JSON object with these exact keys, no markdown, no code blocks:\n{\n  \"candidate_name\": \"full name from CV\",\n  \"email_from_cv\": \"email address found in CV or empty string\",\n  \"phone\": \"phone number found in CV or empty string\",\n  \"location\": \"city or country or empty string\",\n  \"applied_role\": \"role they are applying for or their current title\",\n  \"text\": \"a clean plain-text summary of their name, contact info, location and objective\"\n}",
+        "batching": {}
+      },
+      "id": "948f364b-a4a1-466a-8b3b-f5277e29f09f",
+      "name": "Candidate Details",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -96,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Extract the professional background of the candidate. Focus ONLY on their Work Experience, Education History, and listed Technical/Soft Skills.\n\nResume Text:\n{{ $json.text }}\n\nReturn a clean plain-text summary of their work experience, education, and skills.",
+        "batching": {}
+      },
+      "id": "dba1b6ce-7ce8-474e-af73-1acbb7a18c50",
+      "name": "Background",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -96,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "fafca293-e21c-41b7-b2bf-9d390f129ff2",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        192,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an HR Assistant. Below is extracted information about a candidate from their resume. Combine all the details into one cohesive professional summary.\n\nExtracted Resume Data:\n{{ $input.all().map(item => item.json.text || '').filter(t => t.length > 0).join('\\n\\n') }}\n\nWrite a clear, professional 3-5 sentence summary covering: who they are, their experience, education, and key skills.",
+        "batching": {}
+      },
+      "id": "0121fd1b-f008-411c-b391-a03d1044448c",
+      "name": "Summarization Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        448,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "==You are a Senior HR Expert specializing in Business Development talent acquisition. Your job is to rigorously evaluate candidates SPECIFICALLY for a Business Developer role. You must be strict — a candidate who does not demonstrate clear business development experience, sales acumen, or client acquisition skills must receive a LOW score and a rejection verdict.\n\n--- ROLE REQUIREMENTS: BUSINESS DEVELOPER ---\nMUST HAVE (failure to meet these = automatic score below 40 and verdict of \"No\"):\n- Demonstrated experience in B2B or B2C sales, business development, or client acquisition\n- Experience with lead generation, pipeline management, or deal closing\n- Strong communication and negotiation skills (evidenced by role descriptions)\n- At least some experience with CRM tools, outreach platforms, or sales processes\n\nSTRONG ADVANTAGES (push score above 70):\n- Experience with platforms like LinkedIn Sales Navigator, Apollo, Hunter.io, Upwork, Fiverr\n- Proven track record of revenue generation or partnership development\n- Experience in a startup or agency environment\n- Knowledge of email marketing, cold outreach, or proposal writing\n- Any metrics showing sales performance (e.g. closed deals, revenue targets hit)\n\nDISQUALIFYING FACTORS (score below 30, verdict \"No\"):\n- Purely technical profile with no sales or client-facing experience\n- Only academic background with zero professional BD experience\n- Profiles focused entirely on engineering, design, or back-office roles with no overlap with BD\n\n--- SCORING GUIDE ---\n90-100: Exceptional BD profile, strong track record, all must-haves met plus advantages\n70-89:  Solid BD candidate, meets must-haves, some advantages present\n50-69:  Partial fit, has some BD exposure but gaps in key areas\n30-49:  Weak fit, minimal BD experience, significant gaps\n0-29:   No fit, profile does not match BD role requirements at all\n\n--- CANDIDATE SUMMARY ---\n{{ $json.text }}\n\n--- CRITICAL INSTRUCTION ---\nYou must format your entire response ONLY as a raw JSON object. No markdown, no code blocks, no extra text. Use exactly these keys:\n\n{\n  \"score\": a number between 0 and 100,\n  \"strengths\": \"bullet-point list of BD-relevant strengths found in this candidate\",\n  \"gaps\": \"bullet-point list of missing BD qualifications or red flags\",\n  \"verdict\": \"one of: Strong Yes, Yes, Maybe, No\",\n  \"summary_evaluation\": \"2-3 sentence paragraph explaining the score and verdict with specific reference to the candidate's BD fit\",\n  \"disqualification_reason\": \"if verdict is No, explain the specific reason this candidate was rejected for the BD role. If not rejected, leave as empty string\"\n}",
+        "batching": {}
+      },
+      "id": "d0ad511a-9cd8-4fe2-bf86-7627bc6afbe6",
+      "name": "HR Expert",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        848,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b:free",
+        "options": {}
+      },
+      "id": "61c27710-40ec-4155-a6d6-2a5dfb70d247",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        208,
+        368
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "MAOzaxUR3kUqWEp5",
+          "name": "OpenRouter account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nlet aiResponse = '';\nlet alreadyParsed = null;\n\nfor (const item of items) {\n  if (item.json.score !== undefined || item.json.strengths !== undefined) {\n    alreadyParsed = item.json;\n  }\n  if (item.json.text && typeof item.json.text === 'string') aiResponse = item.json.text;\n  else if (item.json.output && typeof item.json.output === 'string') aiResponse = item.json.output;\n}\n\n// Pull form name + email — works for BOTH triggers\nlet candidateName = 'Unknown';\nlet candidateEmail = 'Unknown';\n\n// Try n8n form trigger path first\ntry {\n  const formData = $('Validate & Extract Input').first().json;\n  if (formData.candidate_name) candidateName = formData.candidate_name;\n  if (formData.email) candidateEmail = formData.email;\n} catch(e) {}\n\n// Fallback: try Google Sheets trigger path\nif (candidateName === 'Unknown' || candidateEmail === 'Unknown') {\n  try {\n    const sheetData = $('Extract Sheet Row Data').first().json;\n    if (sheetData.candidate_name && candidateName === 'Unknown') candidateName = sheetData.candidate_name;\n    if (sheetData.email && candidateEmail === 'Unknown') candidateEmail = sheetData.email;\n  } catch(e) {}\n}\n\n// Pull phone + email + location from CV via Candidate Details node\nlet phoneFromCV = 'Not found';\nlet emailFromCV = 'Not found';\nlet locationFromCV = 'Not found';\nlet appliedRole = 'Not found';\ntry {\n  const detailsRaw = $('Candidate Details').first().json.text || $('Candidate Details').first().json.output || '';\n  const cleaned = detailsRaw.replace(/```json/gi, '').replace(/```/g, '').trim();\n  const match = cleaned.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    const details = JSON.parse(match[0]);\n    phoneFromCV    = details.phone         || 'Not found';\n    emailFromCV    = details.email_from_cv || 'Not found';\n    locationFromCV = details.location      || 'Not found';\n    appliedRole    = details.applied_role  || 'Not found';\n    if (candidateName === 'Unknown' && details.candidate_name) candidateName = details.candidate_name;\n  }\n} catch(e) {\n  phoneFromCV = 'Parse error: ' + e.message;\n}\n\n// Parse HR Expert evaluation JSON\nlet parsedData = {};\nif (alreadyParsed) {\n  parsedData = alreadyParsed;\n} else {\n  if (aiResponse) {\n    aiResponse = aiResponse.replace(/```json/gi, '').replace(/```/g, '').trim();\n    const match = aiResponse.match(/\\{[\\s\\S]*\\}/);\n    if (match) aiResponse = match[0];\n  } else {\n    aiResponse = '{}';\n  }\n  try {\n    parsedData = JSON.parse(aiResponse);\n  } catch(e) {\n    // ADDED disqualification_reason here for safe error handling\n    parsedData = {\n      score: null,\n      strengths: 'Parse Error: ' + e.message,\n      gaps: 'Check debug_raw_text column for raw AI output.',\n      verdict: 'Error',\n      summary_evaluation: 'Failed to parse AI response.',\n      disqualification_reason: 'Error: Could not parse response' \n    };\n  }\n}\n\nreturn [{\n  json: {\n    candidate_name:     candidateName,\n    email:              candidateEmail,\n    email_from_cv:      emailFromCV,\n    phone:              phoneFromCV,\n    location:           locationFromCV,\n    applied_role:       appliedRole,\n    \n    // ADDED checks for different casing from the LLM just in case\n    disqualification_reason: parsedData.disqualification_reason || parsedData.disqualificationReason || parsedData.Disqualification_Reason || '',\n    \n    score:              parsedData.score              || parsedData.Score              || null,\n    strengths:          parsedData.strengths          || parsedData.Strengths          || 'Not provided',\n    gaps:               parsedData.gaps               || parsedData.Gaps               || 'Not provided',\n    verdict:            parsedData.verdict            || parsedData.Verdict            || 'Unknown',\n    summary_evaluation: parsedData.summary_evaluation || parsedData.summary            || 'Not provided',\n    evaluated_at:       new Date().toISOString(),\n    debug_raw_text:     aiResponse,\n  }\n}];"
+      },
+      "id": "3cde8d6c-1cb6-453e-9fe7-fc8553e5c3d8",
+      "name": "Code in JavaScript",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1LYrSGRMaF4lSBeLpcj047w_FkmCW4bha4ijNhiLBxt0",
+          "mode": "list",
+          "cachedResultName": "HR logger - HR workflow",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LYrSGRMaF4lSBeLpcj047w_FkmCW4bha4ijNhiLBxt0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LYrSGRMaF4lSBeLpcj047w_FkmCW4bha4ijNhiLBxt0/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {
+            "candidate_name": "={{ $json.candidate_name }}",
+            "email": "={{ $json.email }}",
+            "email_from_cv": "={{ $json.email_from_cv }}",
+            "phone": "={{ $json.phone }}",
+            "location": "={{ $json.location }}",
+            "applied_role": "={{ $json.applied_role }}",
+            "score": "={{ $json.score }}",
+            "strengths": "={{ $json.strengths }}",
+            "gaps": "={{ $json.gaps }}",
+            "verdict": "={{ $json.verdict }}",
+            "summary_evaluation": "={{ $json.summary_evaluation }}",
+            "evaluated_at": "={{ $json.evaluated_at }}",
+            "debug_raw_text": "={{ $json.debug_raw_text }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Strength",
+              "displayName": "Strength",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Gaps",
+              "displayName": "Gaps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Verdict",
+              "displayName": "Verdict",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Evaluation Summary",
+              "displayName": "Evaluation Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Evaluated At",
+              "displayName": "Evaluated At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "candidate_name",
+              "displayName": "candidate_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "strengths",
+              "displayName": "strengths",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "gaps",
+              "displayName": "gaps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "verdict",
+              "displayName": "verdict",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "summary_evaluation",
+              "displayName": "summary_evaluation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evaluated_at",
+              "displayName": "evaluated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "debug_raw_text",
+              "displayName": "debug_raw_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email_from_cv",
+              "displayName": "email_from_cv",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "applied_role",
+              "displayName": "applied_role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "6b37d378-f416-46ce-bddc-86d50dacb610",
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1504,
+        32
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "DU2cb4B6399U0Ao2",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Validate & Extract Input",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Sheet Row Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Sheet Row Data": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Candidate Details",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Background",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidate Details": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Background": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Summarization Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarization Chain": {
+      "main": [
+        [
+          {
+            "node": "HR Expert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HR Expert": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Candidate Details",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Background",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Summarization Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "HR Expert",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "425513065c486cfddfef26e52dcde12b76ef191aea73b67bdd85b30366978ac1"
+  }
+}
